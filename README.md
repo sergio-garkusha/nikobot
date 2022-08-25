@@ -14,12 +14,12 @@ help - Докладний перелік можливостей
 ```
 
 #### TODO:
-[ ] Implement `save_order` task
-[ ] Check that user belongs to NikoVoluneers
-[ ] Add search by name chunks, e.g. Захарче Володим Алекс
-[ ] Implement `CANCEL` command
-[ ] Improve search by address
-[ ] Parser fails on Names with ' sign in Ukrainian, e.g. В'юн В'ячеслав Дем'янович FIXME
+- [ ] Implement `save_order` task
+- [ ] Check that user belongs to NikoVoluneers
+- [ ] Add search by name chunks, e.g. Захарче Володим Алекс
+- [ ] Implement `CANCEL` command
+- [ ] Improve search by address
+- [ ] Parser fails on Names with ' sign in Ukrainian, e.g. В'юн В'ячеслав Дем'янович FIXME
 7. PROFIT!!!111
 
 #### Notes and thoughts
@@ -29,6 +29,8 @@ That will generate many results (20 +)
     
 1. Create mechanism for this < Вулиця + 16 + кв 5 >
     1. Searches within prev results
+
+```
         result = search (Вулиця):
             # narrows the scope by adding house number
             search (16):
@@ -36,6 +38,7 @@ That will generate many results (20 +)
                 search (кв 5):
                     ...
                     # exact result
+```
     2. OR Add InlineKeyboard to create choosable address cards
         a) Update to latest version:
                `pip install python-telegram-bot==v20.0a2`
