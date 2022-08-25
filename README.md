@@ -30,15 +30,14 @@ That will generate many results (20 +)
 1. Create mechanism for this < Вулиця + 16 + кв 5 >
     1. Searches within prev results
 
-```
-        result = search (Вулиця):
+
+        ```result = search (Вулиця):
             # narrows the scope by adding house number
             search (16):
                 # narrows the scope by adding house number
                 search (кв 5):
                     ...
-                    # exact result
-```
+                    # exact result```
     2. OR Add InlineKeyboard to create choosable address cards
         a) Update to latest version:
                `pip install python-telegram-bot==v20.0a2`
