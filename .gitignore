@@ -1,0 +1,14 @@
+# configs
+*.ini
+
+# data
+mongodb/**
+*.json
+*.txt
+
+# cache
+__pycache__/
+*.session
+
+# misc
+.DS_Store
