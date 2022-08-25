@@ -41,7 +41,6 @@ help - Докладний перелік можливостей
             b) Revrite the WHOLE APP accordingly :(
     2. Add search by name chunks, e.g. Захарче Володим Алекс
     3. Add CANCEL
-    4. Names fail to be parsed on ' sign in Ukrainian. FIXME
     ...
     7. PROFIT!!!111
 """

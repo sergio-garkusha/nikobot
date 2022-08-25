@@ -299,39 +299,33 @@ def find_dob(t):
 
 
 def find_pib(text):
-    """Функция поиска ФИО"""
-    text = str(text)          # Для уверенности переводим в строку
+    """
+        ПІБ
+
+        В'юн В'ячеслав Дем'янович
+        Урова Олена Михайлівна
+        ГЛУХИХ АННА АЛЕКСЕЕВНА
+        Заяц А.О
+    """
+    text = str(text)
     text = text.replace('Ё', 'Е')
     text = text.replace('ё', 'е')
-    # Удаляем двойные пробелы:
-    text = re.sub(r'\s+', ' ', text)
-    # Ищем паттерн Урова Елена Михайловна / ГЛУХИХ АННА АЛЕКСЕЕВНА
-    # name = None   # Инициализация переменной вытянутого имени
-    """ Паттерн:
-     Первое слово - Загл. буква, далее не пробел, не точка,
-    не запятая, далее могут идти строчные буквы
-     Второе слово - Заглавная буква + строчные
-    или одна заглавная как инициал
-     После - пробел или точка для отделения инициала
-     Третье слово - аналогично второму.
-    (Урова Елена Михайловна, ГЛУХИХ АННА АЛЕКСЕЕВНА, Заяц А.О) """
+    text = re.sub(r'\s+', ' ', text)  # removes double spaces
+    name = None
 
-    # ЇІЄҐ їієґ
-    pattern = r'((\b[А-ЯЇІЄҐ][^А-ЯЇІЄҐ\s\.\,][а-яїієґ]*)(\s+)([А-ЯЇІЄҐ][а-яїієґ]*)' +\
-        '(\.+\s*|\s+)([А-ЯЇІЄҐ][а-яїієґ]*))'
+    # ЇІЄҐ' їієґ'
+    pattern = r"((\b[А-ЯЇІЄҐ][^А-ЯЇІЄҐ\s\.\,][а-яїієґ']*)(\s+)([А-ЯЇІЄҐ][а-яїієґ']*)(\.+\s*|\s+)([А-ЯЇІЄҐ][а-яїієґ']*))"
 
-    # Если строка не написана капсом:
     name = re.findall(pattern, text)
-    # Разбиваем ФИО на три строки Ф, И, О:
     if name:
-        FIO = name[0][0].replace('.', ' ')
-        FIO = re.sub(r'\s+', ' ', FIO).split(' ')
-        if len(FIO) >= 3:
-            return FIO[0], FIO[1], FIO[2]
-        elif len(FIO) == 2:
-            return FIO[0], FIO[1], None
-        elif len(FIO) == 1:
-            return FIO[0], None, None
+        PIB = name[0][0].replace('.', ' ')
+        PIB = re.sub(r'\s+', ' ', PIB).split(' ')
+        if len(PIB) >= 3:
+            return PIB[0], PIB[1], PIB[2]
+        elif len(PIB) == 2:
+            return PIB[0], PIB[1], None
+        elif len(PIB) == 1:
+            return PIB[0], None, None
     else:
         return None, None, None
 
@@ -369,7 +363,7 @@ with open("./channel_messages.json", encoding='utf-8') as f:
                     if char.isnumeric():
                         idx = idx + 1
                     else:
-                        order_no = msg[0:idx]
+                        order_no = msg[0: idx]
                         break
 
                 for char in msg[idx:]:
