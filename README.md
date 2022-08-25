@@ -39,9 +39,9 @@ That will generate many results (20 +)
                     ...
                     # exact result```
     2. OR Add InlineKeyboard to create choosable address cards
-        a) Update to latest version:
+        1. Update to latest version:
                `pip install python-telegram-bot==v20.0a2`
-        b) Revrite the WHOLE APP accordingly :(
+        2. Revrite the WHOLE APP accordingly :(
 """
 
  <!--
