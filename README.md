@@ -73,4 +73,7 @@ db.orders.find({"Bday": {$in: [/^1942/]}}).count()
 db.orders.find({"Bday": {$in: [/1942/]}}).count()
 
 db.orders.find({"Address": {$in: [/Партизанской/]}}).count()
+
+# Import cert
+scp X509-cert.pem <user_name>@<server_name>:/var/www/
 -->
