@@ -1,0 +1,13 @@
+[Telegram]
+
+# you can get telegram development credentials in telegram API Development Tools
+api_id = <your api_id>
+api_hash = <your api_hash>
+
+# use full phone number including + and country code
+phone = <+nnnnnnnnnnn>
+username = <your username>
+
+# not used but needed in dialog
+tasks_channel = <tasks_channel id>
+archive_channel = <archive_channel id>

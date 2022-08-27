@@ -1,0 +1,15 @@
+[NikoBot]
+
+# https://www.siteguarding.com/en/how-to-get-telegram-bot-api-token
+TOKEN = <your telegram token>
+
+# https://www.bmc.com/blogs/mongodb-docker-container
+# db (e.g. local mongo via docker)
+mongodb = mongodb://localhost:27017
+
+# channels
+tasks_channel = <channel id>
+archive_channel = <channel id>
+
+# users of the tasks_channel
+users = <Username1, Username2, ... UsernameN>
