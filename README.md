@@ -3,9 +3,9 @@
 
 
 > Commands:
-```ini
+```
 start - Знайомство
-save_order - Створити заявку
+create_order - Створити заявку
 find_by_phone - Шукати за номером телефону
 find_by_name - Шукати за ім'ям
 find_by_dob - Шукати за датою народження
@@ -14,13 +14,17 @@ help - Докладний перелік можливостей
 ```
 
 #### TODO:
-- [ ] Implement `save_order` task
-- [ ] Check that user belongs to NikoVoluneers
-- [ ] Add search by name chunks, e.g. Захарче Володим Алекс
-- [ ] Implement `CANCEL` command
-- [ ] Improve search by address
-- [ ] Parser fails on Names with ' sign in Ukrainian, e.g. В'юн В'ячеслав Дем'янович FIXME
-7. PROFIT!!!111
+- [x] Implement `create_order` task
+- [x] Implement Descending order for all search results
+- [x] Check that user belongs to NikoVoluneers (Naive)
+- [x] Check that user belongs to NikoVoluneers (Proper)
+- [x] Parser fails on Names with ' sign in Ukrainian, e.g. В'юн В'ячеслав Дем'янович
+- [x] `find_by_name` fails on Names with ‘ sign.
+- [ ] Add inline `joint_search`, e.g. /joint_search p=0990000999 d=12.31.1995 n=(...) a=(...)
+- [ ] Add search by name chunks, e.g. Захарч Волод Олекс
+- [ ] Implement `CANCEL` command ?
+- [ ] Improve search by address (See below)
+107. PROFIT!!!111
 
 #### Notes and thoughts
 Search by address is far from ideal based on data we have.

@@ -1,56 +1,41 @@
 import configparser
 from datetime import datetime
-from src.helpers.bday import parse_dob
 import pytz
 import traceback
 import re
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from pymongo import DESCENDING, MongoClient
 
-from pymongo import MongoClient
+from src.helpers.auth import is_permitted
+from src.helpers.bday import parse_dob
+from src.helpers.msg_parser import parse_msg_for_record
 
 """
 [Commands]:
 
 start - Знайомство
-save_order - Створити заявку
+create_order - Створити заявку
 find_by_phone - Шукати за номером телефону
 find_by_name - Шукати за ім'ям
 find_by_dob - Шукати за датою народження
 find_by_address - Шукати за адресою
 help - Докладний перелік можливостей
-
-[@TODO]:
-
-    0. !!!!! Check that user belongs to NikoVoluneers !!!!!
-
-    Search by address is far from ideal based on data we have.
-    So it is most realistic to search by street names with $regex.
-    That will generate many results (20 +)
-    
-    1. Create mechanism for this < Вулиця + 16 + кв 5 >
-        1. Searches within prev results
-            result = search (Вулиця):
-                        # narrower
-                        search (16):
-                            # narrower
-                            search (кв 5):
-                                # exact
-        2. OR Add InlineKeyboard to create choosable address cards
-            a) Update to latest version:
-               pip install python-telegram-bot==v20.0a2
-            b) Revrite the WHOLE APP accordingly :(
-    2. Add search by name chunks, e.g. Захарче Володим Алекс
-    3. Add CANCEL
-    ...
-    7. PROFIT!!!111
 """
 
+TOKEN = None
+DB = None
+
+# UNAUTHORIZED = True
 STATE = 0
+
+# NAME = 5
+# PASS = 6
+
 NAME = 10
 PHONE = 20
 DOB = 30
 ADDRESS = 40
-SAVE = 50
+CREATE = 50
 
 
 def reset_state():
@@ -58,80 +43,107 @@ def reset_state():
     STATE = None
 
 
-client = MongoClient("mongodb://localhost:27017")
-db = client.nikovolunteers
-
-
 def find_by_phone(update, context):
     global STATE
-    STATE = PHONE
-    update.message.reply_text("Введіть номер телефону:")
+    user = update.message.chat.username
+    if is_permitted(user):
+        STATE = PHONE
+        update.message.reply_text("Введіть номер телефону:")
 
 
 def find_by_dob(update, context):
     global STATE
-    STATE = DOB
-    update.message.reply_text("Введіть дату народження:")
+    user = update.message.chat.username
+    if is_permitted(user):
+        STATE = DOB
+        update.message.reply_text("Введіть дату народження:")
 
 
 def find_by_name(update, context):
     global STATE
-    STATE = NAME
-    update.message.reply_text("Введіть ім'я:")
+    user = update.message.chat.username
+    if is_permitted(user):
+        STATE = NAME
+        update.message.reply_text("Введіть ім'я:")
 
 
 def find_by_address(update, context):
     global STATE
-    STATE = ADDRESS
-    update.message.reply_text("Введіть адресу:")
+    user = update.message.chat.username
+    if is_permitted(user):
+        STATE = ADDRESS
+        update.message.reply_text("Введіть адресу:")
 
 
-def save_order(update, context):
+def create_order(update, context):
     global STATE
-    STATE = SAVE
-    update.message.reply_text("Введіть заявку, ось вам шаблон:")
-    update.message.reply_text(
-        f"👤 Ім'ячко\n🎈 Хеппібьоздей\n📫 Домівка\n📲 Телехвончик\n👨‍👩‍👧‍👦 Категорія громадян\n\n=== Тіло Заявки ===")
-    update.message.reply_text(
-        "Копіюємо шаблон, редагуємо його, надсилаємо готове мені")
-    update.message.reply_text(
-        "Я скажу чи заявка збереглася успішно\nПересилай ії до каналу Задач")
+    user = update.message.chat.username
+    if is_permitted(user):
+        STATE = CREATE
+        update.message.reply_text("Введіть заявку, ось вам шаблон:")
+        update.message.reply_text(
+            f"#️⃣ Нумер\n"
+            + "👤 Ім'ячко\n"
+            + "🎈 Хеппібьоздей\n"
+            + "📫 Домівка\n"
+            + "📲 Телехвончик\n"
+            + "👵🏻 Категорія громадян\n"
+            + "🚗 Самовивіз (як є)\n\n"
+            + "=== Тіло Заявки ===")
+        update.message.reply_text(
+            "Копіюємо шаблон, редагуємо його, надсилаємо мені готову сюди")
+        update.message.reply_text(
+            'Якщо заявка збереглася успішно,\n'
+            + 'пересилаємо її до каналу\n'
+            + '🚑 Задачи NikoVolunteers')
+
+
+def reply_for_search(reply, **kvargs):
+    reply(
+        f"#️⃣ {kvargs['num']}\n"
+        + f"👤 {kvargs['name']}\n"
+        + f"🎈 {kvargs['bday']}\n"
+        + f"📫 {kvargs['addr']}\n"
+        + f"📲 {kvargs['phone']}\n"
+        + f"👵🏻 {kvargs['cats']}\n\n"
+        + f"=== «Сира» Заявка ===\n\n"
+        + f"```\n{kvargs['msg']}```")
 
 
 def get_phone(phone):
-    query = db.orders.find({"Phone": phone})
-    query = query.next()
-    print(query)
+    query = DB.orders.find({"Phone": phone}).sort("Date", DESCENDING)
+    try:
+        query = query.next()
+    except:
+        pass
     return query
 
 
 def get_dob(bday):
-    query = db.orders.find({"Bday": bday})
-    query = query.next()
-    print(query)
+    query = DB.orders.find({"Bday": bday}).sort("Date", DESCENDING)
+    try:
+        query = query.next()
+    except:
+        pass
     return query
 
 
 def get_address(addr):
-    query = db.orders.find(
-        {"Address": {"$regex": re.compile(f'{addr}', re.I)}})
-    while True:
-        try:
-            query = query.next()
-        except:
-            break
-    print(query)
+    query = DB.orders.find(
+        {"Address": {"$regex": re.compile(f'{addr}', re.I)}}).sort("Date", DESCENDING)
+    try:
+        query = query.next()
+    except:
+        pass
     return query
 
 
 def get_name(name):
-    query = db.orders.find({"PIB": {"$all": name}})
-    while True:
-        try:
-            query = query.next()
-        except:
-            break
-    print(query)
+    query = DB.orders.find({"PIB": {"$all": name}}).sort("Date", DESCENDING)
+    try:
+        query = query.next()
+    except:
+        pass
     return query
 
 
@@ -150,7 +162,7 @@ def compute_date_delta(date):
 def received_address(update, context):
     try:
         addr = update.message.text.strip()
-        recs_qty = db.orders.count_documents(
+        recs_qty = DB.orders.count_documents(
             {"Address": {"$regex": re.compile(f'{addr}', re.I)}})
 
         if recs_qty:
@@ -168,36 +180,42 @@ def received_address(update, context):
 
             if recs_qty > 1:
                 update.message.reply_text(f"Всього заявок: {recs_qty}")
-            update.message.reply_text(
-                f"Заявка № {num}\nДнів з останньої заявки: {delt}")
-            update.message.reply_text(
-                f"👤 {name}\n🎈 {bday}\n📫 {addr}\n📲 {phone}\n👨‍👩‍👧‍👦 {cats}")
-            update.message.reply_markdown_v2(f"```\n{msg}```")
+            if recs_qty > 9:
+                update.message.reply_text(f"⚠️ Занадто загальний запрос ⚠️")
+            update.message.reply_text(f"Днів з останньої заявки: {delt}")
+            reply_for_search(update.message.reply_markdown,
+                             num=num, name=name, bday=bday,
+                             addr=addr, phone=phone, cats=cats,
+                             msg=msg)
             reset_state()
         else:
             update.message.reply_text(f"Записів немає")
     except Exception as e:
         update.message.reply_text("Невірний формат імені")
         print(f"\n{e}")
+        traceback.print_exc()
 
 
 def received_name(update, context):
     try:
         name = update.message.text.strip()
+        if name.__contains__("‘"):
+            name = name.replace("‘", "'")
         name = name.split(' ')
         length = len(name)
 
+        q = [""]
         if length == 1:  # Last name
-            # db.orders.find({"PIB": {$all: ["Сорочан"]}}).pretty()
+            # DB.orders.find({"PIB": {$all: ["Сочоран"]}}).pretty()
             q = [f"{name[0]}"]
         elif length == 2:  # First name + Last name
-            # db.orders.find({"PIB": {$all: ["Сорочан", "Владимир"]}}).pretty()
+            # DB.orders.find({"PIB": {$all: ["Сочоран", "Владимир"]}}).pretty()
             q = [f"{name[0]}", f"{name[1]}"]
         elif length == 3:  # First name + Last name + Father's name
-            # db.orders.find({"PIB": {$all: ["Сорочан", "Владимир", "Васильевич"]}}).pretty()
+            # DB.orders.find({"PIB": {$all: ["Сочоран", "Владимир", "Индигович"]}}).pretty()
             q = [f"{name[0]}", f"{name[1]}", f"{name[2]}"]
 
-        recs_qty = db.orders.count_documents({"PIB": {"$all": q}})
+        recs_qty = DB.orders.count_documents({"PIB": {"$all": q}})
 
         if recs_qty:
             res = get_name(q)
@@ -215,22 +233,24 @@ def received_name(update, context):
             if recs_qty > 1:
                 update.message.reply_text(f"Всього заявок: {recs_qty}")
             update.message.reply_text(
-                f"Заявка № {num}\nДнів з останньої заявки: {delt}")
-            update.message.reply_text(
-                f"👤 {name}\n🎈 {bday}\n📫 {addr}\n📲 {phone}\n👨‍👩‍👧‍👦 {cats}")
-            update.message.reply_markdown_v2(f"```\n{msg}```")
+                f"Днів з останньої заявки: {delt}")
+            reply_for_search(update.message.reply_markdown,
+                             num=num, name=name, bday=bday,
+                             addr=addr, phone=phone, cats=cats,
+                             msg=msg)
             reset_state()
         else:
             update.message.reply_text(f"Записів немає")
     except Exception as e:
         update.message.reply_text("Невірний формат імені")
         print(f"\n{e}")
+        traceback.print_exc()
 
 
 def received_dob(update, context):
     try:
         bday = parse_dob(update.message.text.strip())
-        recs_qty = db.orders.count_documents({"Bday": bday})
+        recs_qty = DB.orders.count_documents({"Bday": bday})
 
         if recs_qty:
             rec = get_dob(bday)
@@ -248,26 +268,37 @@ def received_dob(update, context):
             if recs_qty > 1:
                 update.message.reply_text(f"Всього заявок: {recs_qty}")
             update.message.reply_text(
-                f"Заявка № {num}\nДнів з останньої заявки: {delt}")
-            update.message.reply_text(
-                f"👤 {name}\n🎈 {bday}\n📫 {addr}\n📲 {phone}\n👨‍👩‍👧‍👦 {cats}")
-            update.message.reply_markdown_v2(f"```\n{msg}```")
+                f"Днів з останньої заявки: {delt}")
+            reply_for_search(update.message.reply_markdown,
+                             num=num, name=name, bday=bday,
+                             addr=addr, phone=phone, cats=cats,
+                             msg=msg)
             reset_state()
         else:
             update.message.reply_text(f"Записів немає")
     except Exception as e:
         update.message.reply_text("Невірний формат дати")
         print(f"\n{e}")
+        traceback.print_exc()
 
 
-def received_save(update, context):
+def received_create(update, context):
     try:
-        update.message.reply_text(
-            "Ще в розробці, спробуй пошук - він спрощує життя вже сьогодні")
-        reset_state()
+        to_record = parse_msg_for_record(update.message)
+        recorded = DB.orders.insert_one(to_record)
+
+        if recorded and recorded.inserted_id:
+            update.message.reply_text(f"Успішно збережено!")
+            update.message.reply_text(
+                f"Можна пересилати в\n"
+                + "🚑 Задачи NikoVolunteers")
+            reset_state()
+        else:
+            update.message.reply_text(f"Заявку неможливо зберегти :(")
     except Exception as e:
         update.message.reply_text("Щось пішло не так :(")
         print(f"\n{e}")
+        traceback.print_exc()
 
 
 def received_phone(update, context):
@@ -277,11 +308,9 @@ def received_phone(update, context):
         phone = update.message.text.strip()
         phone = re.search(patt, phone).group()
 
-        recs_qty = db.orders.count_documents({"Phone": int(phone)})
+        recs_qty = DB.orders.count_documents({"Phone": int(phone)})
         if recs_qty:
             rec = get_phone(int(phone))
-
-            # context.user_data['current_record'] = rec
 
             num = rec["OrderNumber"]
             name = ' '.join(rec["PIB"])
@@ -297,10 +326,11 @@ def received_phone(update, context):
             if recs_qty > 1:
                 update.message.reply_text(f"Всього заявок: {recs_qty}")
             update.message.reply_text(
-                f"Заявка № {num}\nДнів з останньої заявки: {delt}")
-            update.message.reply_text(
-                f"👤 {name}\n🎈 {bday}\n📫 {addr}\n📲 {phone}\n👨‍👩‍👧‍👦 {cats}")
-            update.message.reply_markdown_v2(f"```\n{msg}```")
+                f"Днів з останньої заявки: {delt}")
+            reply_for_search(update.message.reply_markdown,
+                             num=num, name=name, bday=bday,
+                             addr=addr, phone=phone, cats=cats,
+                             msg=msg)
             reset_state()
         else:
             update.message.reply_text(f"Записів немає")
@@ -312,77 +342,199 @@ def received_phone(update, context):
 
 def start(update, context):
     # function to handle the /start command
-    first_name = update.message.chat.first_name
-    update.message.reply_text(
-        f"Вітаю {first_name}, я ваш ад'ютант, попрацюємо?\nВикористовуй меню для пошуку та створення")
+    user = update.message.chat.username
+    if is_permitted(user):
+        first_name = update.message.chat.first_name
+        update.message.reply_text(
+            f"Вітаю {first_name}, я @nikovolunteerbot!\n"
+            + "(a-ka Adjutant)\n"
+            + "Твій персональний помічник.\n")
+        update.message.reply_text(
+            "Я вмію шукати заявки за критеріями.\n"
+            + "А також допомагати тобі в їх створенні.")
+        update.message.reply_text(
+            "Використовуй меню зліва\n"
+            + "щоб обрати команду зі списку.")
+        update.message.reply_text(
+            "Або обирай /help для продовження знайомства.")
+    else:
+        update.message.reply_text("Я той що автоматизує.\n"
+                                  + "Нехай Щастить!")
 
 
 def help(update, context):
-    # function to handle the /help commazxnd
-    update.message.reply_text('Всі інструкції згодом')
+    # function to handle the /help command
+    user = update.message.chat.username
+    if is_permitted(user):
+        update.message.reply_text(f"Ось що я вмію:\n\n"
+                                  + f"/start - Знайомство\n"
+                                  + f"/create_order - Створити заявку\n"
+                                  + f"/find_by_phone - Шукати за номером телефону\n"
+                                  + f"/find_by_name - Шукати за ім'ям\n"
+                                  + f"/find_by_dob - Шукати за датою народження\n"
+                                  + f"/find_by_address - Шукати за адресою\n"
+                                  + f"/help - Докладний перелік можливостей")
+        update.message.reply_text("/find_by_phone - Пошук за номером телефону\n\n"
+                                  + "Номер повинен мати наступний вигляд: 0985111151\n"
+                                  + "Номери в інших форматах неприпустимі.")
+        update.message.reply_text("/find_by_name - Пошук за ім'ям\n\n"
+                                  + "Варіанти запросів:\n\n"
+                                  + "За прізвищем:\n"
+                                  + "      В'юн\n\n"
+                                  + "За прізвищем та ім'ям:\n"
+                                  + "      В'юн В'ячеслав\n\n"
+                                  + "За повним ім'ям:\n"
+                                  + "      В'юн В'ячеслав Дем'янович\n\n"
+                                  + "За ім'ям та по-батькові (можливі співпадіння):\n"
+                                  + "      В'ячеслав Дем'янович\n\n"
+                                  + "В майбутньому будуть і часткові імена, наприклад:\n\n"
+                                  + "Захарч Волод Олекс або В'юн В Д")
+        update.message.reply_text("/find_by_address - Пошук за датою народження\n\n"
+                                  + "Формат: число місяць рік\n\n"
+                                  + "Варіанти запросів:\n\n"
+                                  + "21.10.1962\n"
+                                  + "21 жов 1962\n"
+                                  + "21 жов 1962\n"
+                                  + "21 окт 1962\n"
+                                  + "21 октября 1962\n")
+        update.message.reply_text("/find_by_address - Пошук за адресою\n\n"
+                                  + "Найскладніший вид пошуку\n\n"
+                                  + "На сьогодні він вміє шукати за точними адресами:\n"
+                                  + "так, як вони були записані в заявках.\n\n"
+                                  + "В майбутньому буде реалізовано більш гнучкий варіант.\n\n"
+                                  + "Варіанти запросів:\n\n"
+                                  + "Крилова\n"
+                                  + "Крилова 12\n"
+                                  + "Крилова, 12\n")
+        update.message.reply_text("/create_order - Механізм створення та збереження заявок\n\n"
+                                  + "Надважливо зберігати заявки в базу!!!\n\n"
+                                  + "Будь ласак уважно читайте що каже Вам бот\n")
+    else:
+        update.message.reply_text("Допомога вже близько.\n"
+                                  + "Нехай Щастить!")
 
 
 def error(update, context):
     # function to handle errors occured in the dispatcher
-    update.message.reply_text('Якась нєвєдома хрєнь')
-
-# function to handle normal text
+    update.message.reply_text('Якась невідома хрєнь')
 
 
-def text(update, context):
+# def lets_auth(update, context):
+#     global STATE
+#     STATE = NAME
+#     update.message.reply_text("Скажи перевірочне слово:")
+
+
+# def get_authname(update, context):
+#     global STATE
+#     STATE = PASS
+#     name = update.message.text.strip()
+#     context.user_data['name'] = name
+#     update.message.reply_text("Продовжуй...")
+
+
+# def received_auth(update, context):
+# def continue_auth(update, context):
+#     global DB
+#     global UNAUTHORIZED
+
+#     if UNAUTHORIZED:
+#         uname = context.user_data['name']
+#         pword = update.message.text.strip()
+#         user = update.message.chat.username
+
+#         try:
+#             query = DB.access.find({"uname": uname})
+#             query = query.next()
+
+#             # is_authenticated = authenticate(query, pword, user)
+
+#             if is_authenticated:
+#                 update.message.reply_text(f"Тебе авторизовано!")
+#                 UNAUTHORIZED = False
+#                 reset_state()
+#         except Exception as e:
+#             update.message.reply_text(f"Hє щастить :(")
+#             print(f"\nAuth exception: {e}")
+#             traceback.print_exc()
+#             reset_state()
+
+
+def text_handler(update, context):
+    # function to handle normal text
     global STATE
+    # global UNAUTHORIZED
+    user = update.message.chat.username
+    if is_permitted(user):
+        if STATE == PHONE:
+            return received_phone(update, context)
 
-    if STATE == PHONE:
-        return received_phone(update, context)
+        if STATE == DOB:
+            return received_dob(update, context)
 
-    if STATE == DOB:
-        return received_dob(update, context)
+        if STATE == NAME:
+            return received_name(update, context)
 
-    if STATE == NAME:
-        return received_name(update, context)
+        if STATE == ADDRESS:
+            return received_address(update, context)
 
-    if STATE == ADDRESS:
-        return received_address(update, context)
+        if STATE == CREATE:
+            return received_create(update, context)
+    else:
+        update.message.reply_text("Ви не авторизовані")
+    #     if STATE == NAME:
+    #         return get_authname(update, context)
 
-    if STATE == SAVE:
-        return received_save(update, context)
-
-# This function is called when the /biorhythm command is issued
+        # if STATE == PASS:
+        #     return continue_auth(update, context)
 
 
 def main():
+    global CONFIG
+    global DB
+
     config = configparser.ConfigParser()
     config.read(".nikobot.ini")
-    TOKEN = config["NikoBot"]["TOKEN"]
+    CONFIG = config["NikoBot"]
+    TOKEN = CONFIG["TOKEN"]
+    mongodb = CONFIG["mongodb"]
 
     # create the updater, that will automatically create also a dispatcher and a queue to
     # make them dialoge
     updater = Updater(TOKEN, use_context=True)
+    # BOT = updater.bot
     dispatcher = updater.dispatcher
 
-    # add handlers for start and help commands
-    dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(CommandHandler("help", help))
+    with MongoClient(mongodb) as client:
+        DB = client.nikovolunteers
 
-    #
-    dispatcher.add_handler(CommandHandler("find_by_name", find_by_name))
-    dispatcher.add_handler(CommandHandler("find_by_phone", find_by_phone))
-    dispatcher.add_handler(CommandHandler("find_by_dob", find_by_dob))
-    dispatcher.add_handler(CommandHandler("find_by_address", find_by_address))
+        # handlers for start and help commands
+        dispatcher.add_handler(CommandHandler("start", start))
+        dispatcher.add_handler(CommandHandler("help", help))
 
-    dispatcher.add_handler(CommandHandler("save_order", save_order))
+        # dispatcher.add_handler(CommandHandler("auth", lets_auth))
 
-    # add an handler for normal text (not commands)
-    dispatcher.add_handler(MessageHandler(Filters.text, text))
+        # handlers for search commands
+        dispatcher.add_handler(CommandHandler("find_by_name", find_by_name))
+        dispatcher.add_handler(CommandHandler("find_by_phone", find_by_phone))
+        dispatcher.add_handler(CommandHandler("find_by_dob", find_by_dob))
+        dispatcher.add_handler(CommandHandler(
+            "find_by_address", find_by_address))
 
-    # add an handler for errors
-    dispatcher.add_error_handler(error)
+        # handler for save command
+        dispatcher.add_handler(CommandHandler("create_order", create_order))
 
-    # start your shiny new bot
-    updater.start_polling()
+        # handler for normal text (not commands)
+        dispatcher.add_handler(MessageHandler(Filters.text, text_handler))
 
-    # run the bot until Ctrl-C
-    updater.idle()
+        # handler for errors
+        dispatcher.add_error_handler(error)
+
+        # start your shiny new bot
+        updater.start_polling()
+
+        # run the bot until Ctrl-C
+        updater.idle()
 
 
 if __name__ == '__main__':

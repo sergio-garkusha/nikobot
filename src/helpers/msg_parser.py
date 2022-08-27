@@ -1,7 +1,5 @@
-import json
 import re
 
-raw_records_counter = 1
 
 PHONES = []
 PHONES_SET = {}
@@ -17,6 +15,24 @@ CATS = [
     ["Літні люди (75+)", {"літні люди (75+)"}],
     ["Пенсіонер", {"пенсіонер", "пенсионер"}]
 ]
+
+ru = ["янв", "фев", "мар", "апр", "мая", "июн",
+      "июл", "авг", "сен", "окт", "ноя", "дек"]
+ua = ["січ", "лют", "бер", "квіт", "трав", "черв",
+      "лип", "серп", "вер", "жов", "лист", "груд"]
+_ua = ["січ", "лют", "бер", "кві", "тра", "чер",
+       "лип", "сер", "вер", "жов", "лис", "гру"]
+
+
+def find_order_number(t):
+    no = r'#️⃣?№? ?\d* *?\n'
+    result = re.search(no, t)
+    if result:
+        r = result.group()
+        r = r.replace('#️⃣', '')
+        r = r.replace('№', '')
+        return int(r)
+    return None
 
 
 def find_categories(t):
@@ -108,9 +124,6 @@ def find_address(t):
         вул. Героїв України, 18 кв. 36
         ул. Арх. Старова, 6б кв65
     """
-    # ул/вул is required
-    # addr = r'\n(📫{1} ?)?([а-яїієґ]+)?,? ?(((в?ул.?)|(пров.?)|(пер.?)|(вулиця)|(улица)) ?)(\d{1,3})? ?[а-яїієґ]+( ?[а-яїієґ]+)?,? ?\d{1,3}(\/\d{1,2})? ?[абвгд]?(,? ?(квартира|кв.?)? ?\d{1,3})?'
-
     # without the first word
     addr = r'\n(📫{1} ?)?,? ?(((в?ул.?)|(пров.?)|(пер.?)|(пр.?)|(вулиця)|(улица)) ?)(\d{1,3})? ?[а-яїієґ]+\.?( ?[а-яїієґ]+)?,? {1,}?\d{1,3}(\/\d{1,2})?( |-)?[абвгд]?(,? ?(квартира|кв.?)? ?\d{1,3})?'
     result = re.search(addr, t, flags=re.IGNORECASE)
@@ -146,19 +159,10 @@ def parse_year(t):
     if not y:
         return False
     y = y.group()
-    # y = int(y) if y.is_numeric() else False
     if not y:
         return False
 
     return y
-
-
-ru = ["янв", "фев", "мар", "апр", "мая", "июн",
-      "июл", "авг", "сен", "окт", "ноя", "дек"]
-ua = ["січ", "лют", "бер", "квіт", "трав", "черв",
-      "лип", "серп", "вер", "жов", "лист", "груд"]
-_ua = ["січ", "лют", "бер", "кві", "тра", "чер",
-       "лип", "сер", "вер", "жов", "лис", "гру"]
 
 
 def parse_dob(t):
@@ -280,12 +284,12 @@ def find_dob(t):
             22листопада 1930
         """
         dob = r'(0?[1-9]|[12][0-9]|3[01]) ?(січ(:?ня)?|лют(?:ого)?|бер(?:езня)?|квіт(?:ня)?|трав(?:ня)?|черв(?:ня)?|лип(?:ня)?|серп(?:ня)?|вер(?:есня)?|жовт(?:ня)?|груд(?:ня)?|лист(?:опада)?) ?(19|20)\d\d'
-        result = re.search(dob, msg)
+        result = re.search(dob, t)
 
     if not result:
         # 1970 <YYYY>
         dob = r'(19|20)\d\d'
-        result = re.search(dob, msg)
+        result = re.search(dob, t)
 
     if result:
         return result.group()
@@ -326,108 +330,24 @@ def find_pib(text):
 
 collection = []
 
-with open("./channel_messages.json", encoding='utf-8') as f:
-    data = json.load(f)
 
-    i = 1
-    for raw_msg in data:
-        if i < len(data):
-            if not raw_msg.get("message", None):
-                continue
+def parse_msg_for_record(data):
+    if data:
+        record = {}
 
-            collection_item = {}
-            date = raw_msg.get("date", None)
+        date = data["date"]
+        # f'{date:%Y-%m-%d}T{date:%H:%M:%S}+00:00'
+        fmtdate = f'{date:%Y-%m-%d}T{date:%H:%M:%S}+00:00'
 
-            order_no = 0  # Number(0001)
-            pib = ()  # ("P", "I", "B")
-            bday = ""
-            phone = None  # Number, 10 digits
-            address = ""
-            self_pickup = ""
-            categories = []
+        record["Date"] = fmtdate
+        record["OrderNumber"] = find_order_number(data["text"])
+        record["PIB"] = find_pib(data["text"])
+        record["Bday"] = parse_dob(find_dob(data["text"]))
+        record["Phone"] = find_phone(data["text"])
+        record["Address"] = find_address(data["text"])
+        record["Categories"] = find_categories(data["text"])
+        record["SelfPickup"] = is_selfpick(data["text"])
+        record["RawMessage"] = data["text"]
+        # print(record)
 
-            msg = raw_msg.get("message", None)
-            if msg and len(msg) > 0:
-                msg = msg.split("№")
-                if len(msg) > 1:
-                    msg = msg[1]
-
-                idx = 0
-                for char in msg:
-                    if char.isnumeric():
-                        idx = idx + 1
-                    else:
-                        order_no = msg[0: idx]
-                        break
-
-                for char in msg[idx:]:
-                    if char != "\n":
-                        idx = idx + 1
-                    else:
-                        idx = idx + 1
-                        break
-
-                msg = msg[idx:]  # goes to DB like this
-
-                if len(msg) > 0:
-                    pib = find_pib(msg)
-                    bday = parse_dob(find_dob(msg))
-                    phone = find_phone(msg)
-                    PHONES.append(phone)
-                    address = find_address(msg)
-                    categories = find_categories(msg)
-                    self_pickup = is_selfpick(msg)
-
-                    collection_item["Date"] = date
-                    collection_item["Num"] = i
-                    collection_item["OrderNumber"] = int(
-                        order_no) if order_no.isnumeric() else -1
-                    collection_item["PIB"] = pib
-                    collection_item["Bday"] = bday
-                    print(order_no)
-                    collection_item["Phone"] = phone
-                    collection_item["Address"] = address
-                    collection_item["Categories"] = categories
-                    collection_item["SelfPickup"] = self_pickup
-                    collection_item["RawMessage"] = msg
-
-                    # print("Date 🗓:", date)
-                    # print("№:", i)
-                    # print("Order #:", order_no)
-                    # print("PIB 🪪:", pib)
-                    # print("B-day 🎂:", bday)
-                    # print("Phone ☎️:", phone)
-                    # print("Address 📫:", address)
-                    # print("Categories 👨‍👩‍👧‍👦:", categories)
-                    # print()
-                    # print("Self Pickup 🛻:", "✅" if self_pickup else "⛔️")
-                    # print("___________________")
-                    # print()
-                    # print(msg)
-                    # print("___________________\n\n")
-
-                    i = i + 1
-                    collection.append(collection_item)
-                else:
-                    pass
-                    # print("Rec #:", raw_records_counter)
-                    # print(msg)
-                    # exit(0)
-            raw_records_counter = raw_records_counter + 1
-        else:
-            #     print("Усього оброблено:", raw_records_counter - 1, "заявок")
-            break
-
-with open("parsed_results.json", "w", encoding='utf8') as outfile:
-    json.dump(collection, outfile, ensure_ascii=False)
-
-    print("Усього оброблено:", raw_records_counter - 1, "заявок")
-
-# print(len(PHONES))
-# PHONES_SET = set(PHONES)
-# print(len(PHONES_SET))
-
-# duplicated phone numbers
-# l = [item for item, count in collections.Counter(PHONES).items() if count > 1]
-# for i in l:
-#     print(i)
+        return record
