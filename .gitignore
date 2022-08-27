@@ -10,5 +10,10 @@ mongodb/**
 __pycache__/
 *.session
 
+# certs
+*.pem
+
 # misc
 .DS_Store
+
+!requirements.txt

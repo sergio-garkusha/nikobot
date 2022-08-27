@@ -5,6 +5,7 @@ import traceback
 import re
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from pymongo import DESCENDING, MongoClient
+from pymongo.server_api import ServerApi
 
 from src.helpers.auth import is_permitted
 from src.helpers.bday import parse_dob
@@ -498,6 +499,7 @@ def main():
     CONFIG = config["NikoBot"]
     TOKEN = CONFIG["TOKEN"]
     mongodb = CONFIG["mongodb"]
+    cert = CONFIG["cert"]
 
     # create the updater, that will automatically create also a dispatcher and a queue to
     # make them dialoge
@@ -505,7 +507,10 @@ def main():
     # BOT = updater.bot
     dispatcher = updater.dispatcher
 
-    with MongoClient(mongodb) as client:
+    with MongoClient(mongodb,
+                     tls=True,
+                     tlsCertificateKeyFile=cert,
+                     server_api=ServerApi('1')) as client:
         DB = client.nikovolunteers
 
         # handlers for start and help commands

@@ -49,8 +49,13 @@ That will generate many results (20 +)
 """
 
  <!--
+# import .json into db
 docker cp parsed_results.json mongodb:/tmp/parsed_results.json
 docker exec mongodb mongoimport -d nikovolunteers -c orders --file /tmp/parsed_results.json --jsonArray
+
+# export .json from db
+mongoexport -d nikovolunteers -c orders --out output.json
+docker cp mongodb:/output.json . # mongodb is the name of my local container
 
 docker ps -a
 docker exec -it mongodb bash

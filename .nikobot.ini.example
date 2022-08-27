@@ -6,6 +6,7 @@ TOKEN = <your telegram token>
 # https://www.bmc.com/blogs/mongodb-docker-container
 # db (e.g. local mongo via docker)
 mongodb = mongodb://localhost:27017
+cert = <path to your .pem cert>
 
 # channels
 tasks_channel = <channel id>
