@@ -1,5 +1,4 @@
 import configparser
-# import platform
 from datetime import datetime
 import pytz
 import traceback
@@ -11,6 +10,7 @@ from pymongo.server_api import ServerApi
 from src.helpers.auth import is_permitted
 from src.helpers.bday import parse_dob
 from src.helpers.msg_parser import parse_msg_for_record
+from src.helpers.project_root import project_root
 
 """
 [Commands]:
@@ -454,7 +454,7 @@ def main():
     global DB
 
     config = configparser.ConfigParser()
-    config.read(".nikobot.ini")
+    config.read(f"{project_root()}/../.nikobot.ini")
     CONFIG = config["NikoBot"]
     TOKEN = CONFIG["TOKEN"]
     mongodb = CONFIG["mongodb"]
