@@ -51,6 +51,7 @@ That will generate many results (20 +)
 #### Misc
 - [How to Setup Python Script Autorun As a Service in Ubuntu](https://websofttechs.com/tutorials/how-to-setup-python-script-autorun-in-ubuntu-18-04/)
 - [How to Detach Unix Process](https://www.tecmint.com/run-linux-command-process-in-background-detach-process/)
+- [Run a Python App as a Systemd Service](http://iltabiai.github.io/raspberry%20pi/python/linux/ubuntu/telegram/2020/05/08/python-systemd.html)
 
 
  <!--
