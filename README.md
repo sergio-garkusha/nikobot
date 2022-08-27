@@ -20,6 +20,7 @@ help - Докладний перелік можливостей
 - [x] Check that user belongs to NikoVoluneers (Proper)
 - [x] Parser fails on Names with ' sign in Ukrainian, e.g. В'юн В'ячеслав Дем'янович
 - [x] `find_by_name` fails on Names with ‘ sign.
+- [x] `find_by_phone` now supports all formats
 - [ ] Add search by name chunks, e.g. Захарч Волод Олекс
 - [ ] Implement `CANCEL` command ?
 - [ ] Improve search by address (See below)

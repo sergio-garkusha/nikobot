@@ -304,6 +304,8 @@ def received_phone(update, context):
         # 097 262 31 68  # 10 digits, starts with 0
         patt = r'\d{9,10}'
         phone = update.message.text.strip()
+        phone = ''.join(e for e in phone if e.isnumeric())
+        phone = phone[2:] if len(phone) == 12 else phone
         phone = re.search(patt, phone).group()
 
         recs_qty = DB.orders.count_documents({"Phone": int(phone)})
@@ -373,7 +375,14 @@ def help(update, context):
                                   + f"/find_by_address - Шукати за адресою\n"
                                   + f"/help - Докладний перелік можливостей")
         update.message.reply_text("/find_by_phone - Пошук за номером телефону\n\n"
-                                  + "Номер повинен мати наступний вигляд: 0985111151\n"
+                                  + "Номер наступного вигляду: 0972623168\n"
+                                  + "UPD: тепер в будь-якому форматі"
+                                  + "Варіанти запросів: \n\n"
+                                  + "+380 (97) 262 31 68\n"
+                                  + "+38097 262 31 68\n"
+                                  + "+380972623168\n"
+                                  + "0972623168\n"
+                                  + "972623168\n"
                                   + "Номери в інших форматах неприпустимі.")
         update.message.reply_text("/find_by_name - Пошук за ім'ям\n\n"
                                   + "Варіанти запросів:\n\n"
