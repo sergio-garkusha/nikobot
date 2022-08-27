@@ -1,4 +1,5 @@
 import configparser
+# import platform
 from datetime import datetime
 import pytz
 import traceback
@@ -26,11 +27,7 @@ help - Докладний перелік можливостей
 TOKEN = None
 DB = None
 
-# UNAUTHORIZED = True
 STATE = 0
-
-# NAME = 5
-# PASS = 6
 
 NAME = 10
 PHONE = 20
@@ -420,51 +417,9 @@ def error(update, context):
     update.message.reply_text('Якась невідома хрєнь')
 
 
-# def lets_auth(update, context):
-#     global STATE
-#     STATE = NAME
-#     update.message.reply_text("Скажи перевірочне слово:")
-
-
-# def get_authname(update, context):
-#     global STATE
-#     STATE = PASS
-#     name = update.message.text.strip()
-#     context.user_data['name'] = name
-#     update.message.reply_text("Продовжуй...")
-
-
-# def received_auth(update, context):
-# def continue_auth(update, context):
-#     global DB
-#     global UNAUTHORIZED
-
-#     if UNAUTHORIZED:
-#         uname = context.user_data['name']
-#         pword = update.message.text.strip()
-#         user = update.message.chat.username
-
-#         try:
-#             query = DB.access.find({"uname": uname})
-#             query = query.next()
-
-#             # is_authenticated = authenticate(query, pword, user)
-
-#             if is_authenticated:
-#                 update.message.reply_text(f"Тебе авторизовано!")
-#                 UNAUTHORIZED = False
-#                 reset_state()
-#         except Exception as e:
-#             update.message.reply_text(f"Hє щастить :(")
-#             print(f"\nAuth exception: {e}")
-#             traceback.print_exc()
-#             reset_state()
-
-
 def text_handler(update, context):
     # function to handle normal text
     global STATE
-    # global UNAUTHORIZED
     user = update.message.chat.username
     if is_permitted(user):
         if STATE == PHONE:
@@ -483,11 +438,6 @@ def text_handler(update, context):
             return received_create(update, context)
     else:
         update.message.reply_text("Ви не авторизовані")
-    #     if STATE == NAME:
-    #         return get_authname(update, context)
-
-        # if STATE == PASS:
-        #     return continue_auth(update, context)
 
 
 def main():
@@ -507,6 +457,7 @@ def main():
     # BOT = updater.bot
     dispatcher = updater.dispatcher
 
+    # os = platform.system()
     with MongoClient(mongodb,
                      tls=True,
                      tlsCertificateKeyFile=cert,
@@ -516,8 +467,6 @@ def main():
         # handlers for start and help commands
         dispatcher.add_handler(CommandHandler("start", start))
         dispatcher.add_handler(CommandHandler("help", help))
-
-        # dispatcher.add_handler(CommandHandler("auth", lets_auth))
 
         # handlers for search commands
         dispatcher.add_handler(CommandHandler("find_by_name", find_by_name))

@@ -48,6 +48,10 @@ That will generate many results (20 +)
         2. Revrite the WHOLE APP accordingly :(
 """
 
+#### Misc
+[How to Setup Python Script Autorun As a Service in Ubuntu](https://websofttechs.com/tutorials/how-to-setup-python-script-autorun-in-ubuntu-18-04/)
+
+
  <!--
 # import .json into db
 docker cp parsed_results.json mongodb:/tmp/parsed_results.json
@@ -76,4 +80,9 @@ db.orders.find({"Address": {$in: [/Партизанской/]}}).count()
 
 # Import cert
 scp X509-cert.pem <user_name>@<server_name>:/var/www/
+
+/lib/systemd/system/nikobot.py.service
+systemctl enable nikobot.py.service 
+systemctl start nikobot.py.service
+systemctl status nikobot.py.service
 -->
