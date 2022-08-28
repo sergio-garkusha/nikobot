@@ -9,6 +9,7 @@ mongodb/**
 # cache
 __pycache__/
 *.session
+*.swp
 
 # certs
 *.pem
