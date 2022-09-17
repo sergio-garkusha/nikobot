@@ -320,7 +320,7 @@ def received_create(update, context):
 
 def received_ordnum(update, context):
     try:
-        patt = r'\d'
+        patt = r'\d*'
         num = update.message.text.strip()
         num = re.search(patt, num)
         num = num.group() if num else None
@@ -329,6 +329,7 @@ def received_ordnum(update, context):
             update.message.reply_text("Помилка вводу")
             return
 
+        print(num)
         recs_qty = DB.orders.count_documents({"OrderNumber": int(num)})
         if recs_qty:
             rec = get_ordnum(int(num))
