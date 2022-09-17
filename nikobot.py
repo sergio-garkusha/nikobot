@@ -320,7 +320,7 @@ def received_create(update, context):
 
 def received_ordnum(update, context):
     try:
-        patt = r'\d{4}'
+        patt = r'\d'
         num = update.message.text.strip()
         num = re.search(patt, num)
         num = num.group() if num else None
@@ -440,10 +440,11 @@ def help(update, context):
                                   + f"/find_by_name - Шукати за ім'ям\n"
                                   + f"/find_by_dob - Шукати за датою народження\n"
                                   + f"/find_by_address - Шукати за адресою\n"
+                                  + "/find_by_order_number - Шукати за номером заяви\n"
                                   + f"/help - Докладний перелік можливостей")
         update.message.reply_text("/find_by_phone - Пошук за номером телефону\n\n"
                                   + "Номер наступного вигляду: 0972623168\n"
-                                  + "UPD: тепер в будь-якому форматі"
+                                  + "UPD: тепер в будь-якому форматі\n\n"
                                   + "Варіанти запросів: \n\n"
                                   + "+380 (97) 262 31 68\n"
                                   + "+38097 262 31 68\n"
@@ -463,7 +464,7 @@ def help(update, context):
                                   + "      В'ячеслав Дем'янович\n\n"
                                   + "В майбутньому будуть і часткові імена, наприклад:\n\n"
                                   + "Захарч Волод Олекс або В'юн В Д")
-        update.message.reply_text("/find_by_address - Пошук за датою народження\n\n"
+        update.message.reply_text("/find_by_dob - Пошук за датою народження\n\n"
                                   + "Формат: число місяць рік\n\n"
                                   + "Варіанти запросів:\n\n"
                                   + "21.10.1962\n"
@@ -480,6 +481,9 @@ def help(update, context):
                                   + "Крилова\n"
                                   + "Крилова 12\n"
                                   + "Крилова, 12\n")
+        update.message.reply_text("/find_by_order_number - Шукати за номером заяви\n\n"
+                                  + "Варіант запросу:\n\n"
+                                  + "5111\n")
         update.message.reply_text("/create_order - Механізм створення та збереження заявок\n\n"
                                   + "Надважливо зберігати заявки в базу!!!\n")
     else:
