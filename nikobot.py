@@ -253,7 +253,7 @@ def received_dob(update, context):
         if recs_qty:
             rec = get_dob(bday)
             num = rec["OrderNumber"]
-            name = ' '.join(rec["PIB"])
+            name = ' '.join(word for word in rec["PIB"] if type(word) == str)
             bday = rec["Bday"]
             addr = rec["Address"]
             msg = rec["RawMessage"]
@@ -288,8 +288,7 @@ def received_create(update, context):
         if recorded and recorded.inserted_id:
             update.message.reply_text(f"Успішно збережено!")
             update.message.reply_text(
-                f"Можна пересилати в\n"
-                + "🚑 Задачи NikoVolunteers")
+                "Можна пересилати або копіювати до каналу 🚑 Задачи NikoVolunteers, як зручніше")
             reset_state()
         else:
             update.message.reply_text(f"Заявку неможливо зберегти :(")
@@ -306,14 +305,19 @@ def received_phone(update, context):
         phone = update.message.text.strip()
         phone = ''.join(e for e in phone if e.isnumeric())
         phone = phone[2:] if len(phone) == 12 else phone
-        phone = re.search(patt, phone).group()
+        phone = re.search(patt, phone)
+        phone = phone.group() if phone else None
+
+        if not phone:
+            update.message.reply_text("Помилка вводу")
+            return
 
         recs_qty = DB.orders.count_documents({"Phone": int(phone)})
         if recs_qty:
             rec = get_phone(int(phone))
 
             num = rec["OrderNumber"]
-            name = ' '.join(rec["PIB"])
+            name = ' '.join(word for word in rec["PIB"] if type(word) == str)
             bday = rec["Bday"]
             addr = rec["Address"]
             msg = rec["RawMessage"]
@@ -333,7 +337,7 @@ def received_phone(update, context):
                              msg=msg)
             reset_state()
         else:
-            update.message.reply_text(f"Записів немає")
+            update.message.reply_text("Записів немає")
     except Exception as e:
         update.message.reply_text("Невірно введений номер")
         print(f"\nPhone exception: {e}")
@@ -414,8 +418,7 @@ def help(update, context):
                                   + "Крилова 12\n"
                                   + "Крилова, 12\n")
         update.message.reply_text("/create_order - Механізм створення та збереження заявок\n\n"
-                                  + "Надважливо зберігати заявки в базу!!!\n\n"
-                                  + "Будь ласак уважно читайте що каже Вам бот\n")
+                                  + "Надважливо зберігати заявки в базу!!!\n")
     else:
         update.message.reply_text("Допомога вже близько.\n"
                                   + "Нехай Щастить!")
