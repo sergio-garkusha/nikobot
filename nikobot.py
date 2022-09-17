@@ -21,7 +21,7 @@ find_by_phone - Шукати за номером телефону
 find_by_name - Шукати за ім'ям
 find_by_dob - Шукати за датою народження
 find_by_address - Шукати за адресою
-find_by_order_number - Шукати за номером заяви
+find_by_order - Шукати за номером заяви
 help - Докладний перелік можливостей
 """
 
@@ -43,7 +43,7 @@ def reset_state():
     STATE = None
 
 
-def find_by_order_number(update, context):
+def find_by_order(update, context):
     global STATE
     user = update.message.chat.username
     if is_permitted(user):
@@ -441,7 +441,7 @@ def help(update, context):
                                   + f"/find_by_name - Шукати за ім'ям\n"
                                   + f"/find_by_dob - Шукати за датою народження\n"
                                   + f"/find_by_address - Шукати за адресою\n"
-                                  + "/find_by_order_number - Шукати за номером заяви\n"
+                                  + "/find_by_order - Шукати за номером заяви\n"
                                   + f"/help - Докладний перелік можливостей")
         update.message.reply_text("/find_by_phone - Пошук за номером телефону\n\n"
                                   + "Номер наступного вигляду: 0972623168\n"
@@ -482,7 +482,7 @@ def help(update, context):
                                   + "Крилова\n"
                                   + "Крилова 12\n"
                                   + "Крилова, 12\n")
-        update.message.reply_text("/find_by_order_number - Шукати за номером заяви\n\n"
+        update.message.reply_text("/find_by_order - Шукати за номером заяви\n\n"
                                   + "Варіант запросу:\n\n"
                                   + "5111\n")
         update.message.reply_text("/create_order - Механізм створення та збереження заявок\n\n"
@@ -554,7 +554,7 @@ def main():
         # handlers for search commands
         dispatcher.add_handler(CommandHandler("find_by_name", find_by_name))
         dispatcher.add_handler(CommandHandler(
-            "find_by_order_number", find_by_order_number))
+            "find_by_order", find_by_order))
         dispatcher.add_handler(CommandHandler("find_by_phone", find_by_phone))
         dispatcher.add_handler(CommandHandler("find_by_dob", find_by_dob))
         dispatcher.add_handler(CommandHandler(
