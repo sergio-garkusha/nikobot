@@ -21,6 +21,7 @@ find_by_phone - Шукати за номером телефону
 find_by_name - Шукати за ім'ям
 find_by_dob - Шукати за датою народження
 find_by_address - Шукати за адресою
+find_by_order_number - Шукати за номером заяви
 help - Докладний перелік можливостей
 """
 
@@ -29,6 +30,7 @@ DB = None
 
 STATE = 0
 
+ORD_NUM = 5
 NAME = 10
 PHONE = 20
 DOB = 30
@@ -39,6 +41,14 @@ CREATE = 50
 def reset_state():
     global STATE
     STATE = None
+
+
+def find_by_order_number(update, context):
+    global STATE
+    user = update.message.chat.username
+    if is_permitted(user):
+        STATE = ORD_NUM
+        update.message.reply_text("Введіть номер заяви:")
 
 
 def find_by_phone(update, context):
@@ -106,6 +116,15 @@ def reply_for_search(reply, **kvargs):
         + f"👵🏻 {kvargs['cats']}\n\n"
         + f"=== «Сира» Заявка ===\n\n"
         + f"```\n{kvargs['msg']}```")
+
+
+def get_ordnum(num):
+    query = DB.orders.find({"OrderNumber": num}).sort("Date", DESCENDING)
+    try:
+        query = query.next()
+    except:
+        pass
+    return query
 
 
 def get_phone(phone):
@@ -299,13 +318,56 @@ def received_create(update, context):
         traceback.print_exc()
 
 
+def received_ordnum(update, context):
+    try:
+        patt = r'\d{4}'
+        num = update.message.text.strip()
+        num = re.search(patt, num)
+        num = num.group() if num else None
+
+        if not num:
+            update.message.reply_text("Помилка вводу")
+            return
+
+        recs_qty = DB.orders.count_documents({"OrderNumber": int(num)})
+        if recs_qty:
+            rec = get_ordnum(int(num))
+
+            num = rec["OrderNumber"]
+            name = ' '.join(word for word in rec["PIB"] if type(word) == str)
+            bday = rec["Bday"]
+            addr = rec["Address"]
+            msg = rec["RawMessage"]
+            delt = compute_date_delta(rec["Date"])
+            phone = '0' + str(rec["Phone"])
+
+            cats = ' '.join(rec["Categories"]) if len(
+                rec["Categories"]) > 0 else None
+
+            if recs_qty > 1:
+                update.message.reply_text(f"Всього заявок: {recs_qty}")
+            update.message.reply_text(
+                f"Днів з останньої заявки: {delt}")
+            reply_for_search(update.message.reply_markdown,
+                             num=num, name=name, bday=bday,
+                             addr=addr, phone=phone, cats=cats,
+                             msg=msg)
+            reset_state()
+        else:
+            update.message.reply_text("Записів немає")
+    except Exception as e:
+        update.message.reply_text("Невірно введений номер")
+        print(f"\nPhone exception: {e}")
+        traceback.print_exc()
+
+
 def received_phone(update, context):
     try:
         # 097 262 31 68  # 10 digits, starts with 0
-        patt = r'\d{9,10}'
         phone = update.message.text.strip()
         phone = ''.join(e for e in phone if e.isnumeric())
         phone = phone[2:] if len(phone) == 12 else phone
+        patt = r'\d{9,10}'
         phone = re.search(patt, phone)
         phone = phone.group() if phone else None
 
@@ -435,6 +497,9 @@ def text_handler(update, context):
     global STATE
     user = update.message.chat.username
     if is_permitted(user):
+        if STATE == ORD_NUM:
+            return received_ordnum(update, context)
+
         if STATE == PHONE:
             return received_phone(update, context)
 
@@ -483,6 +548,8 @@ def main():
 
         # handlers for search commands
         dispatcher.add_handler(CommandHandler("find_by_name", find_by_name))
+        dispatcher.add_handler(CommandHandler(
+            "find_by_order_number", find_by_order_number))
         dispatcher.add_handler(CommandHandler("find_by_phone", find_by_phone))
         dispatcher.add_handler(CommandHandler("find_by_dob", find_by_dob))
         dispatcher.add_handler(CommandHandler(

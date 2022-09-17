@@ -10,6 +10,7 @@ find_by_phone - Шукати за номером телефону
 find_by_name - Шукати за ім'ям
 find_by_dob - Шукати за датою народження
 find_by_address - Шукати за адресою
+find_by_order_number - Шукати за номером заяви
 help - Докладний перелік можливостей
 ```
 
@@ -22,6 +23,7 @@ help - Докладний перелік можливостей
 - [x] `find_by_name` fails on Names with ‘ sign.
 - [x] `find_by_phone` now supports all formats
 - [x] Eliminated edge case with absence of names
+- [x] Added `find_by_order_number` command and functionality
 - [ ] Add search by name chunks, e.g. Захарч Волод Олекс
 - [ ] Implement `CANCEL` command ?
 - [ ] Improve search by address (See below)
